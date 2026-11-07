@@ -1,0 +1,123 @@
+<html>
+
+<head>
+    <title>تفاصيل المقال</title>
+</head>
+<style>
+    body {
+        font-family: Arial;
+        max-width: 800px;
+        margin: 20px auto;
+    }
+
+    .post {
+        border: 1px solid #ccc;
+        padding: 15px;
+        border-radius: 8px;
+    }
+
+    .comments {
+        margin-top: 20px;
+    }
+
+    .comment {
+        background: #f9f9f9;
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 5px;
+    }
+</style>
+
+<body>
+    <div class="post" id="post-container"></div>
+    <div class="comments" id="comments-container"></div>
+    <div class="add-comment">
+        <h3>أضف تعليق</h3>
+        <textarea id="comment-text" placeholder="اكتب تعليقك هنا..."></textarea>
+        <button onclick="addComment()">إرسال</button>
+        <p id="comment-message"></p>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const postId = urlParams.get('id');
+        async function loadPost() {
+            try {
+                const response = await fetch(`http://localhost:3002/posts/${postId}`)
+                const data = await response.json();
+                if (data.success) {
+                    const container = document.getElementById('post-container');
+                    container.innerHTML = `
+                     <h2>${data.post.title}</h2>
+                     <p>${data.post.content}</p>
+                     <div>${data.post.author?.name || 'مجهول'}</div>
+                    `;
+                } else {
+                    document.getElementById('post-container').innerHTML = '<p> xالمقال مش موجود</p>';
+                }
+            } catch (error) {
+                console.error(error);
+            }
+        }
+        async function loadComments() {
+            try {
+                const response = await fetch(`http://localhost:3002/comments/posts/${postId}`);
+                const data = await response.json();
+                const container = document.getElementById('comments-container');
+                if (data.success && data.comments.length > 0) {
+                    data.comments.forEach(comment => {
+                        const div = document.createElement('div');
+                        div.className = 'comment';
+                        div.innerHTML = `
+                        <strong>${comment.author?.name || 'مجهول'}</strong>
+                        <p>${comment.text}</p>
+                        `;
+                        container.appendChild(div);
+
+                    });
+                }
+                else {
+                    container.innerHTML = '<p>مفيش تعليقات لسا</p>';
+                }
+            } catch (error) {
+                console.error(error);
+            }
+        }
+        async function addComment() {
+            const token = localStorage.getItem('token');
+            const text = document.getElementById('comment-text').value;
+            if (!token) {
+                document.getElementById('comment - message').textContent = '❌ لازم تسجل دخول الأول';
+                return;
+            }
+            if (!text) {
+                document.getElementById('comment - message').textContent = '❌ اكتب نص التعليق';
+                return;
+            }
+            try {
+                const response = await  fetch(`http://localhost:3002/comments/posts/${postId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({ text })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('comment-message').textContent = '✅ تم إضافة التعليق';
+                    document.getElementById('comment-text').value = '';
+                    loadComments();
+                } else {
+                    document.getElementById('comment-message').textContent = '❌ ' + data.message;
+                }
+            } catch (error) {
+                document.getElementById('comment-message').textContent = '❌ فشل الاتصال بالسيرفر';
+            }
+        }
+        loadPost();
+        loadComments();
+    </script>
+</body>
+
+</html>

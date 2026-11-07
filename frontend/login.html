@@ -1,0 +1,36 @@
+<html>
+    <head>
+        <title>تسجيل الدخول</title>
+    </head>
+    <body>
+        <h1>تسجيل الدخول</h1>
+        <input type="email" id="email" placeholder="البريد الالكتروني">
+        <input type="password" id="password" placeholder="كلمة المرور">
+        <button onclick="login()">دخول</button>
+        <p id="message"></p>
+        <script>
+            async function login(){
+             const email = document.getElementById('email').value;
+             const password =document.getElementById('password').value;
+             try {
+               const response = await fetch('http://localhost:3002/auth/login',{
+                method : 'POST',
+                headers : { 'Content-Type': 'application/json' },
+                body : JSON.stringify({email,password})
+               });
+               const data = await response.json();
+               if(data.success){
+                localStorage.setItem('token',data.token);
+                localStorage.setItem('user',JSON.stringify(data.user));
+                document.getElementById('message').textContent = 'تم تسجيل الدخول بنجاح',
+                window.location.href = 'posts.html';
+               }else{
+                document.getElementById('message').textContent = 'X' + data.message;
+               }
+             } catch (error) {
+                document.getElementById('message').textContent = 'فشل الاتصال بالسيرفر X';
+             }  
+            }
+        </script>
+    </body>
+</html>
